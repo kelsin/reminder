@@ -1,15 +1,18 @@
 {
-    "name": "reminder",
-    "version": "0.0.1",
-    "description": "A Discord Reminder Bot",
-    "main": "index.js",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "keywords": [],
-    "author": "Christopher Giroir <kelsin@valefor.com>",
-    "license": "ISC",
-    "devDependencies": {
-        "wrangler": "^3.99.0"
-    }
+  "name": "reminder",
+  "version": "0.0.1",
+  "description": "A Discord Reminder Bot",
+  "homepage": "https://github.com/kelsin/reminder#readme",
+  "repository": "github:kelsin/reminder",
+  "author": "Christopher Giroir <kelsin@valefor.com>",
+  "main": "index.js",
+  "keywords": [],
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "wrangler": "^3.99.0"
+  }
 }

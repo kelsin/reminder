@@ -5,14 +5,64 @@
   "homepage": "https://github.com/kelsin/reminder#readme",
   "repository": "github:kelsin/reminder",
   "author": "Christopher Giroir <kelsin@valefor.com>",
-  "main": "index.js",
+  "main": "src/server.js",
+  "type": "module",
   "keywords": [],
   "license": "MIT",
   "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "ngrok": "ngrok http 8787",
+    "pretty": "prettier -c .",
+    "pretty:fix": "prettier --write .",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "prettier": {
+    "plugins": [
+      "@ianvs/prettier-plugin-sort-imports"
+    ],
+    "importOrder": [
+      "<BUILTIN_MODULES>",
+      "",
+      "<THIRD_PARTY_MODULES>",
+      "",
+      "^@(/.*)$",
+      "^#(.*)$",
+      "^[.]",
+      "",
+      "^@tests(/.*)$"
+    ],
+    "importOrderCaseSensitive": true
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@eslint/js": "^9.17.0",
+    "@ianvs/prettier-plugin-sort-imports": "^4.4.0",
+    "@vitest/browser": "^2.1.8",
+    "@vitest/coverage-v8": "^2.1.8",
+    "@vitest/ui": "^2.1.8",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "globals": "^15.14.0",
+    "lefthook": "^1.10.0",
+    "ngrok": "5.0.0-beta.2",
+    "prettier": "^3.4.2",
+    "vitest": "^2.1.8",
     "wrangler": "^3.99.0"
+  },
+  "dependencies": {
+    "discord-interactions": "^4.1.0",
+    "itty-router": "^5.0.18"
   }
 }

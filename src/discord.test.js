@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { JsonResponse } from "./server.js";
+import { JsonResponse } from "./discord.js";
 
 describe("JsonResponse", () => {
   test("adds JSON headers to empty response", () => {

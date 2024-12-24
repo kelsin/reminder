@@ -1,25 +1,17 @@
 import {
-  // InteractionResponseFlags,
   InteractionResponseType,
   InteractionType,
   verifyKey,
 } from "discord-interactions";
 import { AutoRouter } from "itty-router";
 
-import { REMIND } from "./commands.js";
-
-const jsonHeaders = {
-  headers: {
-    "content-type": "application/json;charset=UTF-8",
-  },
-};
-
-export class JsonResponse extends Response {
-  constructor(body, init = {}) {
-    const jsonBody = JSON.stringify(body);
-    super(jsonBody, { ...jsonHeaders, ...init });
-  }
-}
+import {
+  COMMAND_REMIND,
+  CUSTOM_ID_CREATE_REMINDER,
+  CUSTOM_ID_LIST_REMINDERS,
+  CUSTOM_ID_REMINDER_MODAL,
+} from "./constants.js";
+import discord, { JsonResponse } from "./discord.js";
 
 const router = AutoRouter();
 
@@ -48,13 +40,8 @@ router.post("/", async (request, env) => {
   if (interaction.type === InteractionType.APPLICATION_COMMAND) {
     // Most user commands will come as `APPLICATION_COMMAND`.
     switch (interaction.data.name.toLowerCase()) {
-      case REMIND.name.toLowerCase(): {
-        return new JsonResponse({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: {
-            content: "Remind!",
-          },
-        });
+      case COMMAND_REMIND.name.toLowerCase(): {
+        return discord.remind();
       }
       default:
         console.error("Unknown command");
@@ -62,6 +49,35 @@ router.post("/", async (request, env) => {
     }
   }
 
+  if (interaction.type === InteractionType.MESSAGE_COMPONENT) {
+    switch (interaction.data.custom_id) {
+      case CUSTOM_ID_LIST_REMINDERS:
+        return discord.list_reminders(interaction, env.DB);
+      case CUSTOM_ID_CREATE_REMINDER:
+        return discord.create_reminder();
+      default:
+        console.error("Unknown custom_id", interaction.data.custom_id);
+        return new JsonResponse(
+          { error: "Unknown Custom ID" },
+          { status: 400 },
+        );
+    }
+  }
+
+  if (interaction.type === InteractionType.MODAL_SUBMIT) {
+    switch (interaction.data.custom_id) {
+      case CUSTOM_ID_REMINDER_MODAL:
+        return discord.get_date();
+      default:
+        console.error("Unknown custom_id", interaction.data.custom_id);
+        return new JsonResponse(
+          { error: "Unknown Custom ID" },
+          { status: 400 },
+        );
+    }
+  }
+
+  console.error("Unknown interaction type", interaction.type);
   return new JsonResponse({ error: "Unknown Type" }, { status: 400 });
 });
 

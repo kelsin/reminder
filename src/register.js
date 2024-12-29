@@ -1,6 +1,6 @@
 import process from "node:process";
 
-import { REMIND } from "./commands.js";
+import { COMMAND_REMIND } from "./constants.js";
 
 /**
  * This file is meant to be run from the command line, and is not used by the
@@ -32,7 +32,7 @@ const response = await fetch(url, {
     Authorization: `Bot ${token}`,
   },
   method: "PUT",
-  body: JSON.stringify([REMIND]),
+  body: JSON.stringify([COMMAND_REMIND]),
 });
 
 if (response.ok) {

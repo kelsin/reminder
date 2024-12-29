@@ -7,9 +7,9 @@ import { AutoRouter } from "itty-router";
 
 import {
   COMMAND_REMIND,
-  CUSTOM_ID_CREATE_REMINDER,
-  CUSTOM_ID_LIST_REMINDERS,
-  CUSTOM_ID_REMINDER_MODAL,
+  REMIND_CREATE,
+  REMIND_DELETE,
+  REMIND_LIST,
 } from "./constants.js";
 import discord, { JsonResponse } from "./discord.js";
 
@@ -29,6 +29,11 @@ router.post("/", async (request, env) => {
     return new Response("Bad request signature.", { status: 401 });
   }
 
+  if (interaction.type === 0) {
+    // Event ping
+    return new JsonResponse(null, { status: 204 });
+  }
+
   if (interaction.type === InteractionType.PING) {
     // The `PING` message is used during the initial webhook handshake, and is
     // required to configure the webhook in the developer portal.
@@ -41,39 +46,22 @@ router.post("/", async (request, env) => {
     // Most user commands will come as `APPLICATION_COMMAND`.
     switch (interaction.data.name.toLowerCase()) {
       case COMMAND_REMIND.name.toLowerCase(): {
-        return discord.remind();
+        const sub_command = interaction.data.options[0].name;
+        switch (sub_command) {
+          case REMIND_LIST:
+            return discord.list_reminders(interaction, env.DB);
+          case REMIND_CREATE:
+            return discord.create_reminder(interaction, env.DB);
+          case REMIND_DELETE:
+            return discord.delete_reminder(interaction, env.DB);
+          default:
+            console.error("Unknown command");
+            return new JsonResponse({ error: "Unknown Type" }, { status: 400 });
+        }
       }
       default:
         console.error("Unknown command");
         return new JsonResponse({ error: "Unknown Type" }, { status: 400 });
-    }
-  }
-
-  if (interaction.type === InteractionType.MESSAGE_COMPONENT) {
-    switch (interaction.data.custom_id) {
-      case CUSTOM_ID_LIST_REMINDERS:
-        return discord.list_reminders(interaction, env.DB);
-      case CUSTOM_ID_CREATE_REMINDER:
-        return discord.create_reminder();
-      default:
-        console.error("Unknown custom_id", interaction.data.custom_id);
-        return new JsonResponse(
-          { error: "Unknown Custom ID" },
-          { status: 400 },
-        );
-    }
-  }
-
-  if (interaction.type === InteractionType.MODAL_SUBMIT) {
-    switch (interaction.data.custom_id) {
-      case CUSTOM_ID_REMINDER_MODAL:
-        return discord.get_date();
-      default:
-        console.error("Unknown custom_id", interaction.data.custom_id);
-        return new JsonResponse(
-          { error: "Unknown Custom ID" },
-          { status: 400 },
-        );
     }
   }
 
@@ -98,9 +86,14 @@ const verifyDiscordRequest = async (request, env) => {
   return { interaction: JSON.parse(body), isValid: true };
 };
 
+const scheduled = async (event, env, ctx) => {
+  ctx.waitUntil(discord.trigger_reminders(env));
+};
+
 const server = {
   verifyDiscordRequest,
   fetch: router.fetch,
+  scheduled,
 };
 
 export default server;

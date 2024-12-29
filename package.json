@@ -12,9 +12,12 @@
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --test-scheduled",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
+    "migrations:create": "wrangler d1 migrations create reminders",
+    "migrations:list": "wrangler d1 migrations list reminders",
+    "migrations:apply": "wrangler d1 migrations apply reminders",
     "ngrok": "ngrok http 8787",
     "pretty": "prettier -c .",
     "pretty:fix": "prettier --write .",
@@ -55,13 +58,15 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
     "globals": "^15.14.0",
-    "lefthook": "^1.10.0",
+    "lefthook": "^1.10.1",
     "ngrok": "5.0.0-beta.2",
     "prettier": "^3.4.2",
     "vitest": "^2.1.8",
     "wrangler": "^3.99.0"
   },
   "dependencies": {
+    "chrono-node": "^2.7.7",
+    "dayjs": "^1.11.13",
     "discord-interactions": "^4.1.0",
     "itty-router": "^5.0.18"
   }

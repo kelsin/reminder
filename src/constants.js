@@ -118,6 +118,11 @@ export const COMMAND_REMIND = {
           type: 1,
         },
         {
+          name: "get",
+          description: "Get your current timezone setting",
+          type: 1,
+        },
+        {
           name: "set",
           description:
             "Set the timezone default for the server, channel or user",

@@ -1,12 +1,18 @@
 import * as chrono from "chrono-node";
 import dayjs from "dayjs";
 import advFormat from "dayjs/plugin/advancedFormat";
+import tzPlugin from "dayjs/plugin/timezone";
+import utcPlugin from "dayjs/plugin/utc";
 import {
   InteractionResponseFlags,
   InteractionResponseType,
 } from "discord-interactions";
 
 import db from "./db.js";
+
+dayjs.extend(advFormat);
+dayjs.extend(utcPlugin);
+dayjs.extend(tzPlugin);
 
 const DEFAULT_TZ = "America/Los_Angeles";
 
@@ -32,8 +38,6 @@ const is_guild_manager = (interaction) => {
   }
   return !!(BigInt(interaction.member.permissions) & MANAGE_GUILD);
 };
-
-dayjs.extend(advFormat);
 
 const jsonHeaders = {
   headers: {
@@ -83,8 +87,8 @@ const pretty_reoccur = (config) => {
   return `\n*Reoccurs:* ${reoccur}, ${count}`;
 };
 
-const pretty_format = (when, what, config, number = null) => {
-  const next = dayjs.unix(when);
+const pretty_format = (when, what, config, tz, number = null) => {
+  const next = dayjs.unix(when).tz(tz);
   const next_formatted = next.format("YYYY-MM-DD [at] h:mma");
   const when_label = config.reoccur ? "Next" : "When";
   const reoccur = pretty_reoccur(config);
@@ -92,12 +96,19 @@ const pretty_format = (when, what, config, number = null) => {
   return `**${index}${what}**\n*${when_label}:* ${next_formatted}${reoccur}`;
 };
 
-const pretty_reminder = (reminder, number = null) => {
-  return pretty_format(reminder.ts, reminder.message, reminder.config, number);
+const pretty_reminder = (reminder, tz, number = null) => {
+  return pretty_format(
+    reminder.ts,
+    reminder.message,
+    reminder.config,
+    tz,
+    number,
+  );
 };
 
 const list_reminders = async (interaction, DB) => {
   const user_id = get_user_id(interaction);
+  const tz = await get_timezone(interaction, DB);
   const results = await db.list_reminders(DB, user_id);
   if (results.length === 0) {
     return message("No current reminders");
@@ -106,7 +117,7 @@ const list_reminders = async (interaction, DB) => {
   let reminders = reminders_header(results.length);
 
   results.forEach((reminder, index) => {
-    const pretty = pretty_reminder(reminder, index + 1);
+    const pretty = pretty_reminder(reminder, tz, index + 1);
     reminders += `\n\n${pretty}`;
   });
 
@@ -143,7 +154,11 @@ const create_reminder = async (interaction, DB) => {
     };
   }, {});
 
-  const ts = dayjs(chrono.parseDate(options.when));
+  const tz = await get_timezone(interaction, DB);
+  const ts = dayjs.tz(
+    chrono.parseDate(options.when, { timezone: tz }, { forwardDate: true }),
+    tz,
+  );
   if (!ts.isValid()) {
     return message(`Invalid date: ${options.when}`);
   }
@@ -249,9 +264,27 @@ const interaction_ids = (interaction) => {
   return ids;
 };
 
+const get_timezone = async (interaction, DB) => {
+  const ids = interaction_ids(interaction);
+  const tzs = await db.get_timezones(DB, ids);
+  tzs.unshift({ scope: "global", timezone: DEFAULT_TZ });
+
+  // Set default to last item with a timezone set
+  for (let i = tzs.length - 1; i >= 0; i--) {
+    if (tzs[i].timezone) {
+      return tzs[i].timezone;
+    }
+  }
+};
+
 const timezone_defaults = async (interaction, DB) => {
   const tz_command = interaction.data.options[0];
   const sub_command = tz_command.options[0];
+
+  if (sub_command.name === "get") {
+    const tz = await get_timezone(interaction, DB);
+    return message(`Current Timezone: **${tz}**`);
+  }
 
   if (sub_command.name === "defaults") {
     const ids = interaction_ids(interaction);

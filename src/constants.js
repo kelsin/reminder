@@ -2,6 +2,7 @@ export const REMIND = "remind";
 export const REMIND_LIST = "list";
 export const REMIND_CREATE = "create";
 export const REMIND_DELETE = "delete";
+export const REMIND_TIMEZONE = "timezone";
 export const COMMAND_REMIND = {
   name: REMIND,
   description: "Add a reminder.",
@@ -103,6 +104,80 @@ export const COMMAND_REMIND = {
           required: true,
           type: 4,
           min_value: 1,
+        },
+      ],
+    },
+    {
+      name: REMIND_TIMEZONE,
+      description: "Edit timezone defaults",
+      type: 2,
+      options: [
+        {
+          name: "defaults",
+          description: "Get the current timezone defaults",
+          type: 1,
+        },
+        {
+          name: "set",
+          description:
+            "Set the timezone default for the server, channel or user",
+          type: 1,
+          options: [
+            {
+              name: "scope",
+              description: "Which default are we setting?",
+              required: true,
+              type: 3,
+              choices: [
+                {
+                  name: "Server",
+                  value: "server",
+                },
+                {
+                  name: "Channel",
+                  value: "channel",
+                },
+                {
+                  name: "User",
+                  value: "user",
+                },
+              ],
+            },
+            {
+              name: "timezone",
+              description: "The timezone to set as a default",
+              required: true,
+              type: 3,
+            },
+          ],
+        },
+        {
+          name: "delete",
+          description:
+            "Delete the timezone default for the server, channel or user",
+          type: 1,
+          options: [
+            {
+              name: "scope",
+              description: "Which default are we setting?",
+              required: true,
+              type: 3,
+              choices: [
+                {
+                  name: "Server",
+                  value: "server",
+                },
+                {
+                  name: "Channel",
+                  value: "channel",
+                },
+                {
+                  name: "User",
+                  value: "user",
+                },
+              ],
+            },
+          ],
         },
       ],
     },

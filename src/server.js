@@ -10,6 +10,7 @@ import {
   REMIND_CREATE,
   REMIND_DELETE,
   REMIND_LIST,
+  REMIND_TIMEZONE,
 } from "./constants.js";
 import discord, { JsonResponse } from "./discord.js";
 
@@ -54,6 +55,8 @@ router.post("/", async (request, env) => {
             return discord.create_reminder(interaction, env.DB);
           case REMIND_DELETE:
             return discord.delete_reminder(interaction, env.DB);
+          case REMIND_TIMEZONE:
+            return discord.timezone_defaults(interaction, env.DB);
           default:
             console.error("Unknown command");
             return new JsonResponse({ error: "Unknown Type" }, { status: 400 });

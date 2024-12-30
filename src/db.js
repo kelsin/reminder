@@ -5,7 +5,7 @@ const prepare_result = (result) => ({
 
 const list_reminders = async (DB, user_id) => {
   const { results } = await DB.prepare(
-    "SELECT * FROM reminders WHERE user_id = ? AND ts >= unixepoch()",
+    "SELECT * FROM reminders WHERE user_id = ? AND ts >= unixepoch() ORDER BY ts",
   )
     .bind(user_id.toString())
     .all();
@@ -26,7 +26,7 @@ const delete_reminder = async (DB, id) => {
 
 const triggered_reminders = async (DB) => {
   const { results } = await DB.prepare(
-    "SELECT * FROM reminders WHERE ts <= unixepoch()",
+    "SELECT * FROM reminders WHERE ts <= unixepoch() ORDER BY ts",
   ).all();
   return results.map(prepare_result);
 };

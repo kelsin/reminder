@@ -135,12 +135,10 @@ const delete_reminder = async (interaction, DB) => {
   }
 
   const reminder = reminders[which - 1];
-  const when = dayjs.unix(reminder.ts);
-  const formatted = when.format("YYYY-MM-DD [at] h:mma");
 
   await db.delete_reminder(DB, reminder.id);
 
-  return message(`Deleted reminder - ${formatted}: ${reminder.message}`);
+  return message(`Deleted reminder: ${reminder.message}`);
 };
 
 const create_reminder = async (interaction, DB) => {
@@ -155,10 +153,9 @@ const create_reminder = async (interaction, DB) => {
   }, {});
 
   const tz = await get_timezone(interaction, DB);
-  const ts = dayjs.tz(
-    chrono.parseDate(options.when, { timezone: tz }, { forwardDate: true }),
-    tz,
-  );
+  const ts = dayjs(
+    chrono.parseDate(options.when, {}, { forwardDate: true }),
+  ).tz(tz, true);
   if (!ts.isValid()) {
     return message(`Invalid date: ${options.when}`);
   }

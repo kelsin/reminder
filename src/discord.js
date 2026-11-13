@@ -405,7 +405,14 @@ const timezone_defaults = async (interaction, DB) => {
   }
 };
 
+const complete_reminder = (interaction) =>
+  new JsonResponse({
+    type: InteractionResponseType.UPDATE_MESSAGE,
+    data: { content: `✅ ~~${interaction.message.content}~~`, components: [] },
+  });
+
 export default {
+  complete_reminder,
   create_reminder,
   delete_reminder,
   list_reminders,

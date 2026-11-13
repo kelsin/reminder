@@ -109,3 +109,16 @@ describe("trigger_reminders", () => {
     });
   });
 });
+
+describe("complete_reminder", () => {
+  test("marks the message done and removes the button", async () => {
+    const response = discord.complete_reminder({
+      message: { content: "Take out the trash" },
+    });
+
+    expect(await response.json()).toEqual({
+      type: 7,
+      data: { content: "✅ ~~Take out the trash~~", components: [] },
+    });
+  });
+});

@@ -6,6 +6,7 @@ import {
 import { AutoRouter } from "itty-router";
 
 import {
+  BUTTON_DONE,
   COMMAND_REMIND,
   REMIND_CREATE,
   REMIND_DELETE,
@@ -66,6 +67,13 @@ router.post("/", async (request, env) => {
         console.error("Unknown command");
         return new JsonResponse({ error: "Unknown Type" }, { status: 400 });
     }
+  }
+
+  if (
+    interaction.type === InteractionType.MESSAGE_COMPONENT &&
+    interaction.data.custom_id === BUTTON_DONE
+  ) {
+    return discord.complete_reminder(interaction);
   }
 
   console.error("Unknown interaction type", interaction.type);

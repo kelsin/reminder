@@ -2,6 +2,7 @@ export const REMIND = "remind";
 export const REMIND_LIST = "list";
 export const REMIND_CREATE = "create";
 export const REMIND_DELETE = "delete";
+export const REMIND_BUTTON = "button";
 export const REMIND_TIMEZONE = "timezone";
 export const COMMAND_REMIND = {
   name: REMIND,
@@ -107,6 +108,20 @@ export const COMMAND_REMIND = {
         {
           name: "which",
           description: "Which reminder should we delete?",
+          required: true,
+          type: 4,
+          min_value: 1,
+        },
+      ],
+    },
+    {
+      name: REMIND_BUTTON,
+      description: "Toggle the Done button on a reminder",
+      type: 1,
+      options: [
+        {
+          name: "which",
+          description: "Which reminder should we toggle the Done button on?",
           required: true,
           type: 4,
           min_value: 1,

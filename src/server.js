@@ -8,6 +8,7 @@ import { AutoRouter } from "itty-router";
 import {
   BUTTON_DONE,
   COMMAND_REMIND,
+  REMIND_BUTTON,
   REMIND_CREATE,
   REMIND_DELETE,
   REMIND_LIST,
@@ -56,6 +57,8 @@ router.post("/", async (request, env) => {
             return discord.create_reminder(interaction, env.DB);
           case REMIND_DELETE:
             return discord.delete_reminder(interaction, env.DB);
+          case REMIND_BUTTON:
+            return discord.toggle_button(interaction, env.DB);
           case REMIND_TIMEZONE:
             return discord.timezone_defaults(interaction, env.DB);
           default:

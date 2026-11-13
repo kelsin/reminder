@@ -14,4 +14,21 @@ describe("COMMAND_REMIND", () => {
       type: 5,
     });
   });
+
+  test("has a button subcommand that takes a reminder number", () => {
+    expect(sub_command("button")).toEqual({
+      name: "button",
+      description: "Toggle the Done button on a reminder",
+      type: 1,
+      options: [
+        {
+          name: "which",
+          description: "Which reminder should we toggle the Done button on?",
+          required: true,
+          type: 4,
+          min_value: 1,
+        },
+      ],
+    });
+  });
 });

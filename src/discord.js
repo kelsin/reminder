@@ -145,6 +145,29 @@ const delete_reminder = async (interaction, DB) => {
   return message(`Deleted reminder: ${reminder.message}`);
 };
 
+const toggle_button = async (interaction, DB) => {
+  const sub_command = interaction.data.options[0];
+  const which = sub_command.options[0].value;
+  const user_id = get_user_id(interaction);
+  const reminders = await db.list_reminders(DB, user_id);
+
+  if (which > reminders.length) {
+    return message(`Invalid reminder: ${which}`);
+  }
+
+  const reminder = reminders[which - 1];
+  const button = !reminder.config.button;
+
+  await db.update_reminder(DB, reminder.id, reminder.ts, {
+    ...reminder.config,
+    button,
+  });
+
+  return message(
+    `Done button ${button ? "on" : "off"} for: ${reminder.message}`,
+  );
+};
+
 const create_reminder = async (interaction, DB) => {
   const user_id = get_user_id(interaction);
   const sub_command = interaction.data.options[0];
@@ -417,6 +440,7 @@ export default {
   create_reminder,
   delete_reminder,
   list_reminders,
+  toggle_button,
   trigger_reminders,
   timezone_defaults,
 };

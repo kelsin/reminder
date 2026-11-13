@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import discord, { JsonResponse } from "./discord.js";
 import server from "./server.js";
 
 afterEach(() => {
@@ -39,5 +40,26 @@ describe("message component interactions", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ error: "Unknown Type" });
+  });
+});
+
+describe("/remind button", () => {
+  test("routes to toggle_button", async () => {
+    const toggle_button = vi
+      .spyOn(discord, "toggle_button")
+      .mockResolvedValue(new JsonResponse({ ok: true }));
+    const env = { DB: {} };
+    const interaction = {
+      type: 2,
+      data: {
+        name: "remind",
+        options: [{ name: "button", options: [{ name: "which", value: 1 }] }],
+      },
+    };
+
+    const response = await post(interaction, env);
+
+    expect(toggle_button).toHaveBeenCalledWith(interaction, env.DB);
+    expect(await response.json()).toEqual({ ok: true });
   });
 });

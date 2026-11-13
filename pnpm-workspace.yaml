@@ -1,0 +1,5 @@
+allowBuilds:
+  esbuild: true
+  lefthook: true
+  ngrok: true
+  workerd: true

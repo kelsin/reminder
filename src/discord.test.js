@@ -183,13 +183,25 @@ describe("list_reminders", () => {
         message: "Call mom",
         config: { reoccur: false },
       },
+      {
+        id: 4,
+        ts: 1767297600,
+        message: "Pay rent",
+        config: {
+          reoccur: true,
+          every: 2,
+          unit: "week",
+          times: 3,
+          button: true,
+        },
+      },
     ]);
 
     const response = await discord.list_reminders(dm, env.DB);
 
     expect((await response.json()).data.content).toBe(
       [
-        "You have 3 Reminders:",
+        "You have 4 Reminders:",
         "",
         "**1: Take out the trash**",
         "*When:* 2026-01-01 at 9:00am",
@@ -201,6 +213,11 @@ describe("list_reminders", () => {
         "",
         "**3: Call mom**",
         "*When:* 2026-01-01 at 11:00am",
+        "",
+        "**4: Pay rent**",
+        "*Next:* 2026-01-01 at 12:00pm",
+        "*Reoccurs:* every 2 weeks, 3 more times",
+        "*Button:* on",
       ].join("\n"),
     );
   });

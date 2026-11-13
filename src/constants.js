@@ -188,3 +188,4 @@ export const COMMAND_REMIND = {
     },
   ],
 };
+export const BUTTON_DONE = "done";

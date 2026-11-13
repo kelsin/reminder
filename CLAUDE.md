@@ -8,7 +8,7 @@ Discord reminder bot (the `/remind` slash command) running as a single Cloudflar
 
 ## Commands
 
-Package manager is pnpm (CI uses pnpm 9 on Node 22).
+Package manager is pnpm. Node is pinned in `.node-version` (26.5.0) and pnpm in the `packageManager` field of `package.json` (9.15.9); nodenv, corepack and CI all read those two files. Node 26 does not bundle corepack, so it is installed once per Node version with `npm install -g corepack && corepack enable`.
 
 - `pnpm dev`: `wrangler dev --test-scheduled` on port 8787. The cron handler can be fired by hand at `http://localhost:8787/__scheduled`.
 - `pnpm ngrok`: tunnels port 8787 so Discord can reach the local worker.
@@ -17,7 +17,7 @@ Package manager is pnpm (CI uses pnpm 9 on Node 22).
 - `pnpm lint` / `pnpm lint:fix`: ESLint.
 - `pnpm pretty` / `pnpm pretty:fix`: Prettier over the whole repo, Markdown and JSON included. Prettier also sorts imports.
 - `pnpm migrations:create <name>`, `pnpm migrations:list`, `pnpm migrations:apply`: D1 migrations in `migrations/`. Pass `--local` or `--remote` to choose the database.
-- `pnpm deploy`: `wrangler deploy`.
+- `pnpm run deploy`: `wrangler deploy`. The `run` is required, because `pnpm deploy` is a built-in pnpm command.
 - `node src/register.js`: registers the slash command schema with Discord globally. Needs `DISCORD_TOKEN` and `DISCORD_APPLICATION_ID` in the environment. There is no package script for it, and it must be re-run after any change to `COMMAND_REMIND` in `src/constants.js`.
 
 CI (`.github/workflows/test.yml`) runs `pnpm commitlint -l`, `pnpm pretty`, `pnpm lint` and `pnpm test`. Commit messages must follow Conventional Commits. Lefthook runs commitlint on `commit-msg`, and Prettier, ESLint and `vitest related` on `pre-commit`.

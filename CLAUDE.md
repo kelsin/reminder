@@ -30,14 +30,14 @@ The worker reads `DISCORD_APPLICATION_ID`, `DISCORD_PUBLIC_KEY` and `DISCORD_TOK
 
 `src/server.js` is the Worker entry point and exports `fetch` and `scheduled`.
 
-- `fetch` is an itty-router `AutoRouter`. `POST /` is the Discord interactions endpoint: it verifies the ed25519 signature, answers `PING`, then dispatches on `interaction.data.options[0].name` to a handler in `src/discord.js`. `verifyDiscordRequest` is called through the exported `server` object, so a test can replace it.
+- `fetch` is an itty-router `AutoRouter`. `POST /` is the Discord interactions endpoint: it verifies the ed25519 signature, answers `PING`, then dispatches on `interaction.data.options[0].name` to a handler in `src/discord.js`. A message-component interaction with `custom_id` `done` (the Done button on a reminder DM) goes to `discord.complete_reminder`. `verifyDiscordRequest` is called through the exported `server` object, so a test can replace it.
 - `scheduled` runs on the `*/15 * * * *` cron and calls `discord.trigger_reminders(env)`, which selects every reminder with `ts <= unixepoch()`, DMs the user through the Discord REST API with the bot token, then deletes or reschedules the row.
 
 Layering is `server.js` (routing, verification) → `discord.js` (command handlers, formatting, timezone resolution, Discord REST calls) → `db.js` (all SQL; every function takes the D1 binding as its first argument). `constants.js` holds the slash command schema, shared by `server.js` for subcommand names and by `register.js`.
 
 ### Data model
 
-- `reminders(id, ts, user_id, message, config)`: `ts` is unix seconds. `config` is JSON text holding the `create` options left after `when` and `what` are removed: `{ reoccur, every?, unit?, times? }`. `db.js` parses it on read and stringifies it on write. Defaults are applied where it is read (`every` 1, `unit` `"day"`, `times` 0), and `times` 0 means forever.
+- `reminders(id, ts, user_id, message, config)`: `ts` is unix seconds. `config` is JSON text holding the `create` options left after `when` and `what` are removed: `{ reoccur, every?, unit?, times?, button? }`. `db.js` parses it on read and stringifies it on write. Defaults are applied where it is read (`every` 1, `unit` `"day"`, `times` 0), and `times` 0 means forever. A truthy `button` adds a Done button to the reminder DM.
 - `timezones(discord_id, timezone)`: one table for server, channel and user overrides, keyed by the raw Discord ID with no scope column.
 
 ### Behavior that spans files
@@ -45,11 +45,12 @@ Layering is `server.js` (routing, verification) → `discord.js` (command handle
 - Timezone precedence is user > channel > server > global (`America/Los_Angeles`). `interaction_ids()` builds the list in increasing priority, `db.get_timezones` returns one row per ID in that order, the global default is prepended, and the last row with a timezone wins.
 - Reminders do not store a timezone. The resolved timezone is used only to interpret `when` at creation (`chrono-node` parse, then `dayjs(...).tz(tz, true)`) and to format output.
 - Recurrence adds `every` × `unit` to the stored `ts`, not to the current time, and advances one interval per cron run. A recurring reminder is deleted when `times` is 1; `times` decrements only when greater than 1.
-- `/remind delete <which>` takes a 1-based index into `db.list_reminders` (the user's future reminders ordered by `ts`), not a database ID, so `list` and `delete` depend on the same query ordering.
-- Every interaction response is ephemeral (the `message()` helper), and reminders are always delivered as DMs.
+- `/remind delete <which>` and `/remind button <which>` take a 1-based index into `db.list_reminders` (the user's future reminders ordered by `ts`), not a database ID, so `list`, `delete` and `button` depend on the same query ordering.
+- The Done button is stateless. `/remind button` only flips `config.button`; the click handler rewrites the DM from `interaction.message.content` as `✅ ~~<content>~~` with no database access, and nothing is kept about a reminder after it fires.
+- Every slash command response is ephemeral (the `message()` helper), and reminders are always delivered as DMs.
 - The user ID is `interaction.member.user.id` in a server and `interaction.user.id` in a DM; use `get_user_id()`.
 - Timezone strings are stored without validation.
 
 ### Tests and lint
 
-The only test file is `src/discord.test.js`. Vitest runs in its default Node environment with `dir: "src"`; no Workers pool or D1 mock is configured. ESLint is configured with browser globals only, so Node built-ins such as `process` must be imported explicitly (see `src/register.js`).
+Tests are `src/discord.test.js`, `src/server.test.js` and `src/constants.test.js`; they stub `db.js` functions with `vi.spyOn` and Discord's REST API with a stubbed `fetch`. Vitest runs in its default Node environment with `dir: "src"`; no Workers pool or D1 mock is configured. ESLint is configured with browser globals only, so Node built-ins such as `process` must be imported explicitly (see `src/register.js`).

@@ -96,7 +96,8 @@ const pretty_format = (when, what, config, tz, number = null) => {
   const when_label = config.reoccur ? "Next" : "When";
   const reoccur = pretty_reoccur(config);
   const index = number ? `${number}: ` : "";
-  return `**${index}${what}**\n*${when_label}:* ${next_formatted}${reoccur}`;
+  const button = config.button ? "\n*Button:* on" : "";
+  return `**${index}${what}**\n*${when_label}:* ${next_formatted}${reoccur}${button}`;
 };
 
 const pretty_reminder = (reminder, tz, number = null) => {

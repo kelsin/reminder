@@ -122,3 +122,86 @@ describe("complete_reminder", () => {
     });
   });
 });
+
+const dm = { user: { id: "u1", username: "kelsin" } };
+
+describe("create_reminder", () => {
+  test("stores the button option in config", async () => {
+    vi.spyOn(db, "get_timezones").mockResolvedValue([]);
+    const create = vi.spyOn(db, "create_reminder").mockResolvedValue();
+
+    await discord.create_reminder(
+      {
+        ...dm,
+        data: {
+          options: [
+            {
+              name: "create",
+              options: [
+                { name: "when", value: "tomorrow at 9am" },
+                { name: "what", value: "Take out the trash" },
+                { name: "reoccur", value: false },
+                { name: "button", value: true },
+              ],
+            },
+          ],
+        },
+      },
+      env.DB,
+    );
+
+    expect(create).toHaveBeenCalledWith(
+      env.DB,
+      "u1",
+      expect.any(Number),
+      "Take out the trash",
+      { reoccur: false, button: true },
+    );
+  });
+});
+
+describe("list_reminders", () => {
+  test("shows a Button line only for reminders with the button on", async () => {
+    vi.spyOn(db, "get_timezones").mockResolvedValue([]);
+    // 2026-01-01 9am, 10am, 11am America/Los_Angeles
+    vi.spyOn(db, "list_reminders").mockResolvedValue([
+      {
+        id: 1,
+        ts: 1767286800,
+        message: "Take out the trash",
+        config: { reoccur: false, button: true },
+      },
+      {
+        id: 2,
+        ts: 1767290400,
+        message: "Water plants",
+        config: { reoccur: true, button: false },
+      },
+      {
+        id: 3,
+        ts: 1767294000,
+        message: "Call mom",
+        config: { reoccur: false },
+      },
+    ]);
+
+    const response = await discord.list_reminders(dm, env.DB);
+
+    expect((await response.json()).data.content).toBe(
+      [
+        "You have 3 Reminders:",
+        "",
+        "**1: Take out the trash**",
+        "*When:* 2026-01-01 at 9:00am",
+        "*Button:* on",
+        "",
+        "**2: Water plants**",
+        "*Next:* 2026-01-01 at 10:00am",
+        "*Reoccurs:* every day, forever",
+        "",
+        "**3: Call mom**",
+        "*When:* 2026-01-01 at 11:00am",
+      ].join("\n"),
+    );
+  });
+});

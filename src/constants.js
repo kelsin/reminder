@@ -91,6 +91,12 @@ export const COMMAND_REMIND = {
             { name: "24 times", value: 24 },
           ],
         },
+        {
+          name: "button",
+          description: "Add a Done button to this reminder? Defaults to false.",
+          required: false,
+          type: 5,
+        },
       ],
     },
     {

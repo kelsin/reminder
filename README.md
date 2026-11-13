@@ -18,7 +18,8 @@ interactions. Reminders can be set to reoccur according to some simple rules.
 ### Commands
 
 - `/remind list`: This command will list all of your current reminders (ordered
-  by the time that they will next trigger).
+  by the time that they will next trigger). Reminders that have a Done button
+  show `Button: on`.
 
 - `/remind delete <which>`: This command takes in a number and deletes one of
   your reminders. The numbers used are the numbers displayed as part of `/remind
@@ -45,8 +46,6 @@ list`. This means that `/remind delete 1` always will delete the reminder
   can see at a glance that it was handled. It changes nothing else about the
   reminder and cannot be undone, and reoccuring reminders get a fresh button
   each time they trigger.
-
-- `/remind list` shows `Button: on` for reminders that have a Done button.
 
 ### Repeat Reminders
 

@@ -18,7 +18,8 @@ interactions. Reminders can be set to reoccur according to some simple rules.
 ### Commands
 
 - `/remind list`: This command will list all of your current reminders (ordered
-  by the time that they will next trigger).
+  by the time that they will next trigger). Reminders that have a Done button
+  show `Button: on`.
 
 - `/remind delete <which>`: This command takes in a number and deletes one of
   your reminders. The numbers used are the numbers displayed as part of `/remind
@@ -26,7 +27,11 @@ list`. This means that `/remind delete 1` always will delete the reminder
   that's coming up next. Currently there is no way to delete only a certain
   instance of a reoccuring reminder.
 
-- `/remind create <when> <what> <reoccur> [every] [unit] [times]`: This command
+- `/remind button <which>`: This command takes in a number and toggles the Done
+  button on or off for one of your reminders. The numbers used are the numbers
+  displayed as part of `/remind list`. It replies with the new state.
+
+- `/remind create <when> <what> <reoccur> [every] [unit] [times] [button]`: This command
   creates a new reminder. The `<when>` field takes in many date forms in plain
   english. Values like "next Tuesday at 9am" or "Saturday at 11pm" work. For
   reoccuring reminders this should always be the time of the FIRST reoccurance
@@ -35,7 +40,12 @@ list`. This means that `/remind delete 1` always will delete the reminder
   reminder will only trigger once at the `<when>` time. If `<reoccur>` is set to
   true than this reminder will repeat itself after the first instance based on
   the optional values of `[every]`, `[unit]` and `[times]`. For more information
-  on how to setup repeating reminders please see the next section.
+  on how to setup repeating reminders please see the next section. If you set
+  `[button]` (default `false`) to `true` the reminder message will have a Done
+  button. Clicking it marks that message with ✅ and strikes it through so you
+  can see at a glance that it was handled. It changes nothing else about the
+  reminder and cannot be undone, and reoccuring reminders get a fresh button
+  each time they trigger.
 
 ### Repeat Reminders
 

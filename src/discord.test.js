@@ -1,6 +1,33 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { JsonResponse } from "./discord.js";
+import db from "./db.js";
+import discord, { JsonResponse } from "./discord.js";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+const env = { DB: {}, DISCORD_TOKEN: "token" };
+
+const stub_fetch = () => {
+  const fetch = vi
+    .fn()
+    .mockResolvedValue({ json: async () => ({ id: "dm-1" }) });
+  vi.stubGlobal("fetch", fetch);
+  return fetch;
+};
+
+// trigger_reminders makes two fetch calls per reminder: open DM, send message
+const sent_body = (fetch) => JSON.parse(fetch.mock.calls[1][1].body);
+
+const due = (config) => ({
+  id: 1,
+  user_id: "u1",
+  ts: 1000,
+  message: "Take out the trash",
+  config,
+});
 
 describe("JsonResponse", () => {
   test("adds JSON headers to empty response", () => {
@@ -19,5 +46,254 @@ describe("JsonResponse", () => {
     expect(response.headers.get("content-type")).toBe(
       "application/json;charset=UTF-8",
     );
+  });
+});
+
+describe("trigger_reminders", () => {
+  test("sends a plain DM when the button is not set", async () => {
+    vi.spyOn(db, "triggered_reminders").mockResolvedValue([
+      due({ reoccur: false }),
+    ]);
+    vi.spyOn(db, "delete_reminder").mockResolvedValue();
+    const fetch = stub_fetch();
+
+    await discord.trigger_reminders(env);
+
+    expect(sent_body(fetch)).toEqual({ content: "Take out the trash" });
+  });
+
+  test("sends a plain DM when the button is false", async () => {
+    vi.spyOn(db, "triggered_reminders").mockResolvedValue([
+      due({ reoccur: false, button: false }),
+    ]);
+    vi.spyOn(db, "delete_reminder").mockResolvedValue();
+    const fetch = stub_fetch();
+
+    await discord.trigger_reminders(env);
+
+    expect(sent_body(fetch)).toEqual({ content: "Take out the trash" });
+  });
+
+  test("adds a Done button when the button is on", async () => {
+    vi.spyOn(db, "triggered_reminders").mockResolvedValue([
+      due({ reoccur: false, button: true }),
+    ]);
+    vi.spyOn(db, "delete_reminder").mockResolvedValue();
+    const fetch = stub_fetch();
+
+    await discord.trigger_reminders(env);
+
+    expect(sent_body(fetch)).toEqual({
+      content: "Take out the trash",
+      components: [
+        {
+          type: 1,
+          components: [{ type: 2, style: 3, label: "Done", custom_id: "done" }],
+        },
+      ],
+    });
+  });
+
+  test("keeps the button on a recurring reminder's next occurrence", async () => {
+    vi.spyOn(db, "triggered_reminders").mockResolvedValue([
+      due({ reoccur: true, button: true }),
+    ]);
+    const update = vi.spyOn(db, "update_reminder").mockResolvedValue();
+    stub_fetch();
+
+    await discord.trigger_reminders(env);
+
+    expect(update).toHaveBeenCalledWith(env.DB, 1, expect.any(Number), {
+      reoccur: true,
+      button: true,
+    });
+  });
+});
+
+describe("complete_reminder", () => {
+  test("marks the message done and removes the button", async () => {
+    const response = discord.complete_reminder({
+      message: { content: "Take out the trash" },
+    });
+
+    expect(await response.json()).toEqual({
+      type: 7,
+      data: { content: "✅ ~~Take out the trash~~", components: [] },
+    });
+  });
+});
+
+const dm = { user: { id: "u1", username: "kelsin" } };
+
+describe("create_reminder", () => {
+  test("stores the button option in config", async () => {
+    vi.spyOn(db, "get_timezones").mockResolvedValue([]);
+    const create = vi.spyOn(db, "create_reminder").mockResolvedValue();
+
+    await discord.create_reminder(
+      {
+        ...dm,
+        data: {
+          options: [
+            {
+              name: "create",
+              options: [
+                { name: "when", value: "tomorrow at 9am" },
+                { name: "what", value: "Take out the trash" },
+                { name: "reoccur", value: false },
+                { name: "button", value: true },
+              ],
+            },
+          ],
+        },
+      },
+      env.DB,
+    );
+
+    expect(create).toHaveBeenCalledWith(
+      env.DB,
+      "u1",
+      expect.any(Number),
+      "Take out the trash",
+      { reoccur: false, button: true },
+    );
+  });
+});
+
+describe("list_reminders", () => {
+  test("shows a Button line only for reminders with the button on", async () => {
+    vi.spyOn(db, "get_timezones").mockResolvedValue([]);
+    // 2026-01-01 9am, 10am, 11am America/Los_Angeles
+    vi.spyOn(db, "list_reminders").mockResolvedValue([
+      {
+        id: 1,
+        ts: 1767286800,
+        message: "Take out the trash",
+        config: { reoccur: false, button: true },
+      },
+      {
+        id: 2,
+        ts: 1767290400,
+        message: "Water plants",
+        config: { reoccur: true, button: false },
+      },
+      {
+        id: 3,
+        ts: 1767294000,
+        message: "Call mom",
+        config: { reoccur: false },
+      },
+      {
+        id: 4,
+        ts: 1767297600,
+        message: "Pay rent",
+        config: {
+          reoccur: true,
+          every: 2,
+          unit: "week",
+          times: 3,
+          button: true,
+        },
+      },
+    ]);
+
+    const response = await discord.list_reminders(dm, env.DB);
+
+    expect((await response.json()).data.content).toBe(
+      [
+        "You have 4 Reminders:",
+        "",
+        "**1: Take out the trash**",
+        "*When:* 2026-01-01 at 9:00am",
+        "*Button:* on",
+        "",
+        "**2: Water plants**",
+        "*Next:* 2026-01-01 at 10:00am",
+        "*Reoccurs:* every day, forever",
+        "",
+        "**3: Call mom**",
+        "*When:* 2026-01-01 at 11:00am",
+        "",
+        "**4: Pay rent**",
+        "*Next:* 2026-01-01 at 12:00pm",
+        "*Reoccurs:* every 2 weeks, 3 more times",
+        "*Button:* on",
+      ].join("\n"),
+    );
+  });
+});
+
+describe("toggle_button", () => {
+  const toggle = (which) => ({
+    ...dm,
+    data: {
+      options: [{ name: "button", options: [{ name: "which", value: which }] }],
+    },
+  });
+
+  const scheduled = [
+    {
+      id: 11,
+      ts: 2000,
+      message: "Take out the trash",
+      config: { reoccur: true, every: 2 },
+    },
+    {
+      id: 12,
+      ts: 3000,
+      message: "Water plants",
+      config: { reoccur: false, button: true },
+    },
+  ];
+
+  test("turns the button on, keeping the time and the rest of config", async () => {
+    vi.spyOn(db, "list_reminders").mockResolvedValue(scheduled);
+    const update = vi.spyOn(db, "update_reminder").mockResolvedValue();
+
+    const response = await discord.toggle_button(toggle(1), env.DB);
+
+    expect(update).toHaveBeenCalledWith(env.DB, 11, 2000, {
+      reoccur: true,
+      every: 2,
+      button: true,
+    });
+    expect((await response.json()).data.content).toBe(
+      "Done button on for: Take out the trash",
+    );
+  });
+
+  test("turns the button off", async () => {
+    vi.spyOn(db, "list_reminders").mockResolvedValue(scheduled);
+    const update = vi.spyOn(db, "update_reminder").mockResolvedValue();
+
+    const response = await discord.toggle_button(toggle(2), env.DB);
+
+    expect(update).toHaveBeenCalledWith(env.DB, 12, 3000, {
+      reoccur: false,
+      button: false,
+    });
+    expect((await response.json()).data.content).toBe(
+      "Done button off for: Water plants",
+    );
+  });
+
+  test("rejects a number past the end of the list", async () => {
+    vi.spyOn(db, "list_reminders").mockResolvedValue(scheduled);
+    const update = vi.spyOn(db, "update_reminder").mockResolvedValue();
+
+    const response = await discord.toggle_button(toggle(3), env.DB);
+
+    expect(update).not.toHaveBeenCalled();
+    expect((await response.json()).data.content).toBe("Invalid reminder: 3");
+  });
+
+  test("rejects any number when there are no reminders", async () => {
+    vi.spyOn(db, "list_reminders").mockResolvedValue([]);
+    const update = vi.spyOn(db, "update_reminder").mockResolvedValue();
+
+    const response = await discord.toggle_button(toggle(1), env.DB);
+
+    expect(update).not.toHaveBeenCalled();
+    expect((await response.json()).data.content).toBe("Invalid reminder: 1");
   });
 });

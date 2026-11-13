@@ -4,10 +4,13 @@ import advFormat from "dayjs/plugin/advancedFormat";
 import tzPlugin from "dayjs/plugin/timezone";
 import utcPlugin from "dayjs/plugin/utc";
 import {
+  ButtonStyleTypes,
   InteractionResponseFlags,
   InteractionResponseType,
+  MessageComponentTypes,
 } from "discord-interactions";
 
+import { BUTTON_DONE } from "./constants.js";
 import db from "./db.js";
 
 dayjs.extend(advFormat);
@@ -93,7 +96,8 @@ const pretty_format = (when, what, config, tz, number = null) => {
   const when_label = config.reoccur ? "Next" : "When";
   const reoccur = pretty_reoccur(config);
   const index = number ? `${number}: ` : "";
-  return `**${index}${what}**\n*${when_label}:* ${next_formatted}${reoccur}`;
+  const button = config.button ? "\n*Button:* on" : "";
+  return `**${index}${what}**\n*${when_label}:* ${next_formatted}${reoccur}${button}`;
 };
 
 const pretty_reminder = (reminder, tz, number = null) => {
@@ -141,6 +145,29 @@ const delete_reminder = async (interaction, DB) => {
   return message(`Deleted reminder: ${reminder.message}`);
 };
 
+const toggle_button = async (interaction, DB) => {
+  const sub_command = interaction.data.options[0];
+  const which = sub_command.options[0].value;
+  const user_id = get_user_id(interaction);
+  const reminders = await db.list_reminders(DB, user_id);
+
+  if (which > reminders.length) {
+    return message(`Invalid reminder: ${which}`);
+  }
+
+  const reminder = reminders[which - 1];
+  const button = !reminder.config.button;
+
+  await db.update_reminder(DB, reminder.id, reminder.ts, {
+    ...reminder.config,
+    button,
+  });
+
+  return message(
+    `Done button ${button ? "on" : "off"} for: ${reminder.message}`,
+  );
+};
+
 const create_reminder = async (interaction, DB) => {
   const user_id = get_user_id(interaction);
   const sub_command = interaction.data.options[0];
@@ -173,7 +200,7 @@ const create_reminder = async (interaction, DB) => {
   return message(response);
 };
 
-const message_user = async (env, user_id, message) => {
+const message_user = async (env, user_id, message, button) => {
   const response = await fetch("https://discord.com/api/users/@me/channels", {
     method: "POST",
     headers: {
@@ -185,13 +212,30 @@ const message_user = async (env, user_id, message) => {
   const channel = await response.json();
   const id = channel.id;
 
+  const body = { content: message };
+  if (button) {
+    body.components = [
+      {
+        type: MessageComponentTypes.ACTION_ROW,
+        components: [
+          {
+            type: MessageComponentTypes.BUTTON,
+            style: ButtonStyleTypes.SUCCESS,
+            label: "Done",
+            custom_id: BUTTON_DONE,
+          },
+        ],
+      },
+    ];
+  }
+
   await fetch(`https://discord.com/api/channels/${id}/messages`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json;charset=UTF-8",
       Authorization: `Bot ${env.DISCORD_TOKEN}`,
     },
-    body: JSON.stringify({ content: message }),
+    body: JSON.stringify(body),
   });
 };
 
@@ -201,7 +245,12 @@ const trigger_reminders = async (env) => {
   for (let i = 0; i < reminders.length; i++) {
     let reminder = reminders[i];
 
-    await message_user(env, reminder.user_id, reminder.message);
+    await message_user(
+      env,
+      reminder.user_id,
+      reminder.message,
+      reminder.config.button,
+    );
 
     if (!reminder.config.reoccur) {
       await db.delete_reminder(env.DB, reminder.id);
@@ -380,10 +429,18 @@ const timezone_defaults = async (interaction, DB) => {
   }
 };
 
+const complete_reminder = (interaction) =>
+  new JsonResponse({
+    type: InteractionResponseType.UPDATE_MESSAGE,
+    data: { content: `✅ ~~${interaction.message.content}~~`, components: [] },
+  });
+
 export default {
+  complete_reminder,
   create_reminder,
   delete_reminder,
   list_reminders,
+  toggle_button,
   trigger_reminders,
   timezone_defaults,
 };

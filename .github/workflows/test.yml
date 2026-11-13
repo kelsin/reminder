@@ -18,13 +18,11 @@ jobs:
         uses: actions/checkout@v4
       - name: PNPM
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - name: Node
         uses: actions/setup-node@v4
         with:
           cache: "pnpm"
-          node-version: 22
+          node-version-file: ".node-version"
       - name: Dependencies
         run: pnpm install
       - name: Commitlint

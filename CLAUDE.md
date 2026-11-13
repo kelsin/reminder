@@ -22,7 +22,7 @@ pnpm settings live in `pnpm-workspace.yaml`. Its `allowBuilds` map lists the dep
 - `pnpm deploy`: `wrangler deploy`. pnpm 11 and later run the `deploy` script in preference to the built-in command of the same name.
 - `node src/register.js`: registers the slash command schema with Discord globally. Needs `DISCORD_TOKEN` and `DISCORD_APPLICATION_ID` in the environment. There is no package script for it, and it must be re-run after any change to `COMMAND_REMIND` in `src/constants.js`.
 
-CI (`.github/workflows/test.yml`) runs `pnpm commitlint -l`, `pnpm pretty`, `pnpm lint` and `pnpm test`. Commit messages must follow Conventional Commits. Lefthook runs commitlint on `commit-msg`, and Prettier, ESLint and `vitest related` on `pre-commit`.
+CI (`.github/workflows/test.yml`) runs commitlint, `pnpm pretty`, `pnpm lint` and `pnpm test`. Commitlint covers every commit of a pull request, and the last commit on a push or merge queue run. Commit messages must follow Conventional Commits. Lefthook runs commitlint on `commit-msg`, and Prettier, ESLint and `vitest related` on `pre-commit`.
 
 ## Configuration
 

@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - name: PNPM
         uses: pnpm/action-setup@v6
       - name: Node
@@ -26,7 +28,10 @@ jobs:
       - name: Dependencies
         run: pnpm install
       - name: Commitlint
-        run: pnpm --silent commitlint -l
+        run: pnpm --silent commitlint --from "$FROM" --to "$TO"
+        env:
+          FROM: ${{ github.event.pull_request.base.sha || 'HEAD~1' }}
+          TO: ${{ github.event.pull_request.head.sha || 'HEAD' }}
       - name: Prettier
         run: pnpm --silent pretty
       - name: ESLint
